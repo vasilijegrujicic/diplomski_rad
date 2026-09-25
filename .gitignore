@@ -1,0 +1,23 @@
+# Secrets and local config
+.env
+**/.env
+Backend/src/WoBistDu.Api/appsettings.json
+Backend/src/WoBistDu.Api/appsettings.*.json
+!Backend/src/WoBistDu.Api/appsettings.example.json
+.env*.local
+
+# Build output
+**/bin/
+**/obj/
+.vs/
+.idea/
+**/node_modules/
+**/.next/
+*.tsbuildinfo
+
+# Python
+**/.venv/
+__pycache__/
+*.pyc
+*.log
+*.db

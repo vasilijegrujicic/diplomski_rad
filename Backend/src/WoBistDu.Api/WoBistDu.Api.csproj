@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>c68cd145-e8c2-49df-9e6f-8d0c44bce0f7</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WoBistDu.Infrastructure\WoBistDu.Infrastructure.csproj" />
+    <ProjectReference Include="..\WoBistDu.Infrastructure.Authentication\WoBistDu.Infrastructure.Authentication.csproj" />
+    <ProjectReference Include="..\WoBistDu.Domain\WoBistDu.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WoBistDu.Api/WoBistDu.Api.csproj" />
+    <Project Path="src/WoBistDu.Domain/WoBistDu.Domain.csproj" />
+    <Project Path="src/WoBistDu.Infrastructure/WoBistDu.Infrastructure.csproj" />
+    <Project Path="src/WoBistDu.Infrastructure.Authentication/WoBistDu.Infrastructure.Authentication.csproj" />
+  </Folder>
+</Solution>

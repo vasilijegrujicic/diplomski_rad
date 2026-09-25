@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Mitte" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [13.36, 52.53], [13.42, 52.53], [13.42, 52.50], [13.36, 52.50], [13.36, 52.53]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Kreuzberg" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [13.37, 52.49], [13.41, 52.49], [13.41, 52.47], [13.37, 52.47], [13.37, 52.49]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Wedding" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [13.33, 52.55], [13.37, 52.55], [13.37, 52.53], [13.33, 52.53], [13.33, 52.55]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Neukölln" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [13.42, 52.47], [13.46, 52.47], [13.46, 52.45], [13.42, 52.45], [13.42, 52.47]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Prenzlauer Berg" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [13.41, 52.55], [13.45, 52.55], [13.45, 52.53], [13.41, 52.53], [13.41, 52.55]
+          ]
+        ]
+      }
+    }
+  ]
+}

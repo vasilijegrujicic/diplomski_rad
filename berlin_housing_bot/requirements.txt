@@ -1,0 +1,6 @@
+curl_cffi==0.7.3
+beautifulsoup4==4.12.3
+playwright==1.44.0
+python-dotenv==1.0.1
+lxml==5.2.1
+httpx
