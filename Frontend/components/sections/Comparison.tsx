@@ -37,8 +37,8 @@ export default function Comparison() {
           <p className="text-neutral-400">The unfair advantage for the Berlin housing market.</p>
         </div>
 
-        <div className="max-w-3xl mx-auto overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950 shadow-xl">
-          <table className="w-full text-left border-collapse">
+        <div className="max-w-3xl mx-auto rounded-3xl border border-neutral-800 bg-neutral-950 shadow-xl overflow-x-auto">
+          <table className="w-full min-w-[480px] text-left border-collapse">
             <thead>
               <tr className="bg-neutral-900/50">
                 <th className="px-6 py-6 text-neutral-400 font-medium text-sm border-b border-neutral-800">Feature</th>

@@ -16,7 +16,7 @@ const Map = dynamic(() => import("../Map"), {
 
 export default function Hero() {
   return (
-    <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
+    <section className="relative pt-8 pb-16 md:pt-16 md:pb-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <motion.div
           initial={{ opacity: 0, x: -20 }}

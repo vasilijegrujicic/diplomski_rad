@@ -40,6 +40,12 @@ async def run_scraper_safe(scraper):
 
 
 async def main():
+    # WGG i InBerlinWohnen obe pokreću Chromium preko Playwright-a — na maloj VM
+    # dve instance istovremeno pregažuju CPU/RAM, pa navigacija puca sa timeout-om.
+    # Deljeni lock garantuje da samo jedna od njih drži browser otvoren u datom
+    # trenutku, bez obzira na to koliko se njihovi intervali vremenom pomere.
+    browser_lock = asyncio.Lock()
+
     scrapers = [
         KleinanzeigenScraper(
             db_path=DB_PATH,
@@ -50,6 +56,7 @@ async def main():
             db_path=DB_PATH,
             interval_minutes=CHECK_INTERVAL_MINUTES,
             search_url=WGG_SEARCH_URL,
+            browser_lock=browser_lock,
         ),
         InBerlinWohnenScraper(
             db_path=DB_PATH,
@@ -57,6 +64,7 @@ async def main():
             search_url=IBW_SEARCH_URL,
             email=IBW_EMAIL,
             password=IBW_PASSWORD,
+            browser_lock=browser_lock,
         ),
     ]
 

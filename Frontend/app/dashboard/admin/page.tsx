@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { User, Mail, MessageSquare, Trash2, Edit3, LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { authFetch } from "../../../lib/api";
+import { authFetch, getToken } from "../../../lib/api";
 
 interface UserData {
   id: string;
@@ -20,6 +20,19 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    // Back/forward navigation can restore this page from bfcache without
+    // re-running the code above, which would otherwise show stale data
+    // for a few seconds after logout. Force a fresh auth check then.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && !getToken()) {
+        window.location.href = "/login";
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
   const fetchUsers = async () => {

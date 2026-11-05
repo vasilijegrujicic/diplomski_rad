@@ -18,8 +18,15 @@ const API_DATA = [
 // Using local GeoJSON to prevent 404s and external dependency issues
 const BERLIN_GEOJSON_URL = "/berlin-districts.json";
 
+type DistrictInfo = {
+  kiez: string;
+  avgRent: string;
+  timeOnMarket: string;
+  name: string;
+};
+
 export default function BerlinInteractiveMap() {
-  const [hoveredDistrict, setHoveredDistrict] = useState(null);
+  const [hoveredDistrict, setHoveredDistrict] = useState<DistrictInfo | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [loaded, setLoaded] = useState(false);
 
@@ -45,8 +52,8 @@ export default function BerlinInteractiveMap() {
             geography={BERLIN_GEOJSON_URL}
             onLoad={() => setLoaded(true)}
           >
-            {({ geographies }) =>
-              geographies.map((geo) => {
+            {({ geographies }: { geographies: any[] }) =>
+              geographies.map((geo: any) => {
                 const districtName = geo.properties.name || geo.properties.NAME;
                 const data = API_DATA.find(d =>
                   districtName?.toLowerCase().includes(d.kiez.toLowerCase()) ||

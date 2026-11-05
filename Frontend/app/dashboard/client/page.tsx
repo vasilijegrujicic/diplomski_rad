@@ -2,8 +2,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { MapPin, Euro, Home, Bed, Ruler, LogOut, Bell, Filter, Plus, Trash2, ExternalLink } from "lucide-react";
-import { authFetch, clearToken, NotSignedInError } from "../../../lib/api";
-import { KIEZ_OPTIONS, kiezLabel } from "../../../lib/kiezOptions";
+import { authFetch, clearToken, getToken, NotSignedInError } from "../../../lib/api";
+import { kiezLabel } from "../../../lib/kiezOptions";
+import KiezSelector from "../../../components/KiezSelector";
 
 interface UserFilter {
   id: string;
@@ -135,12 +136,18 @@ export default function ClientDashboard() {
     loadMatches();
   }, [loadFilters, loadMatches]);
 
-  const toggleKiez = (value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      kiezes: prev.kiezes.includes(value) ? prev.kiezes.filter((k) => k !== value) : [...prev.kiezes, value],
-    }));
-  };
+  useEffect(() => {
+    // Back/forward navigation can restore this page from bfcache without
+    // re-running the code above, which would otherwise show stale data
+    // for a few seconds after logout. Force a fresh auth check then.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && !getToken()) {
+        window.location.href = "/login";
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,33 +348,10 @@ export default function ClientDashboard() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Areas</label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, kiezes: [] })}
-                      className={`px-3 py-1 rounded-full text-xs border transition-all ${
-                        form.kiezes.length === 0
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                          : "border-neutral-800 text-neutral-500 hover:border-neutral-700"
-                      }`}
-                    >
-                      All Berlin
-                    </button>
-                    {KIEZ_OPTIONS.map((k) => (
-                      <button
-                        key={k.value}
-                        type="button"
-                        onClick={() => toggleKiez(k.value)}
-                        className={`px-3 py-1 rounded-full text-xs border transition-all ${
-                          form.kiezes.includes(k.value)
-                            ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                            : "border-neutral-800 text-neutral-500 hover:border-neutral-700"
-                        }`}
-                      >
-                        {k.label}
-                      </button>
-                    ))}
-                  </div>
+                  <KiezSelector
+                    value={form.kiezes}
+                    onChange={(kiezes) => setForm({ ...form, kiezes })}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-neutral-950 border border-neutral-800 rounded-xl">

@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, Euro, Mail, Send, CheckCircle2, Ruler, Bed, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "../../lib/api";
-import { KIEZ_OPTIONS } from "../../lib/kiezOptions";
+import KiezSelector from "../../components/KiezSelector";
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT ?? "flatfinder11_bot";
 const VERIFY_TIMEOUT_MS = 24 * 60 * 60 * 1000;
@@ -84,13 +84,6 @@ export default function RegisterPage() {
 
     return () => clearInterval(interval);
   }, [regToken, router]);
-
-  const toggleKiez = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      kiezes: prev.kiezes.includes(value) ? prev.kiezes.filter((k) => k !== value) : [...prev.kiezes, value],
-    }));
-  };
 
   const validateForm = () => {
     if (!formData.email.includes("@")) {
@@ -311,33 +304,10 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider ml-1">Preferred Berlin Areas</label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, kiezes: [] })}
-                    className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
-                      formData.kiezes.length === 0
-                        ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                        : "border-neutral-800 text-neutral-500 hover:border-neutral-700"
-                    }`}
-                  >
-                    All Berlin
-                  </button>
-                  {KIEZ_OPTIONS.map((k) => (
-                    <button
-                      key={k.value}
-                      type="button"
-                      onClick={() => toggleKiez(k.value)}
-                      className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
-                        formData.kiezes.includes(k.value)
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                          : "border-neutral-800 text-neutral-500 hover:border-neutral-700"
-                      }`}
-                    >
-                      {k.label}
-                    </button>
-                  ))}
-                </div>
+                <KiezSelector
+                  value={formData.kiezes}
+                  onChange={(kiezes) => setFormData({ ...formData, kiezes })}
+                />
               </div>
 
               <div className="flex items-center justify-between p-3 bg-neutral-950 border border-neutral-800 rounded-xl">

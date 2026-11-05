@@ -16,7 +16,7 @@ const emeraldIcon = new L.DivIcon({
   iconAnchor: [12, 12],
 });
 
-const BERLIN_POINTS = [
+const BERLIN_POINTS: { id: number; pos: [number, number]; title: string; price: string; status: string }[] = [
   { id: 1, pos: [52.5200, 13.4050], title: "Mitte Hub", price: "€24.50/m²", status: "Hot" },
   { id: 2, pos: [52.4986, 13.3918], title: "Kreuzberg Core", price: "€19.20/m²", status: "Active" },
   { id: 3, pos: [52.5394, 13.3545], title: "Wedding North", price: "€14.80/m²", status: "Underpriced" },

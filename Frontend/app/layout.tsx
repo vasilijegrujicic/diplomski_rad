@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-neutral-950 text-neutral-100 antialiased`}>
         <Navbar />
-        {children}
+        <div className="pt-16">{children}</div>
         <Footer />
       </body>
     </html>

@@ -21,14 +21,16 @@ BASE_URL = "https://www.wg-gesucht.de"
 class WGGScraper(BaseScraper):
     source = "WG-Gesucht"
 
-    def __init__(self, db_path, interval_minutes, search_url):
-        super().__init__(db_path, interval_minutes)
+    def __init__(self, db_path, interval_minutes, search_url, browser_lock=None):
+        super().__init__(db_path, interval_minutes, browser_lock=browser_lock)
         self.search_url = search_url
 
     async def fetch_ads(self) -> list[dict]:
         ads = []
 
-        async with async_playwright() as p:
+        # Deljen lock sa InBerlinWohnen — na ovoj VM dve Chromium instance
+        # istovremeno pregažuju CPU/RAM i navigacija puca sa timeout-om.
+        async with self.browser_lock, async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox",
@@ -50,84 +52,76 @@ class WGGScraper(BaseScraper):
             page = await context.new_page()
 
             try:
-                await page.goto(BASE_URL, wait_until="domcontentloaded", timeout=30000)
+                # Jedna navigacija, direktno na pretragu: prihvatanje cookie-ja pa
+                # drugi page.goto (kao ranije preko BASE_URL) je pucao sa timeout-om,
+                # isti obrazac kao kod InBerlinWohnen.
+                await page.goto(self.search_url, wait_until="domcontentloaded", timeout=30000)
                 await asyncio.sleep(random.uniform(1.5, 3.0))
 
-                # Prihvati cookies
+                # Prihvati cookies (dugme je sada <a class="cmpboxbtnyes">)
                 try:
-                    btn = page.locator("button#cmpwelcomebtnyes, button.cmp-accept-btn")
+                    btn = page.locator("a.cmpboxbtnyes, button#cmpwelcomebtnyes, button.cmp-accept-btn")
                     if await btn.count() > 0:
                         await btn.first.click()
                         await asyncio.sleep(1)
                 except Exception:
                     pass
 
-                await page.goto(self.search_url, wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(random.uniform(2.0, 3.5))
+                await asyncio.sleep(random.uniform(1.0, 2.0))
 
                 try:
-                    await page.wait_for_selector(
-                        "div.offer_list_item, div[id^='liste-anzeigen-treffer']",
-                        timeout=15000
-                    )
+                    await page.wait_for_selector("a.offer_list_item", timeout=15000)
                 except PlaywrightTimeout:
                     log.warning("[WG-Gesucht] Timeout čekanja na oglase")
 
                 soup = BeautifulSoup(await page.content(), "html.parser")
 
-                ad_items = (
-                    soup.select("div.offer_list_item") or
-                    soup.select("div[id^='liste-anzeigen-treffer']") or
-                    soup.select("article.wgg-card")
-                )
+                # Sajt je redizajniran — kartica oglasa je sad <a class="wgg-list-card
+                # offer_list_item"> direktno (href i data-id na njoj), ne <div> sa
+                # ugnježdenim linkom kao ranije.
+                ad_items = soup.select("a.offer_list_item")
 
                 for item in ad_items:
                     try:
-                        ad_id = item.get("data-id", "")
-
-                        link_el = (
-                            item.select_one("a[href*='wohnungen-und-wg-zimmer']") or
-                            item.select_one("h3 a") or
-                            item.select_one("a.detailansicht")
-                        )
-                        if not link_el:
+                        href = item.get("href", "")
+                        if not href:
                             continue
 
-                        href = link_el.get("href", "")
+                        ad_id = item.get("data-id", "")
                         if not ad_id:
-                            match = re.search(r'/(\d+)\.html', href)
+                            match = re.search(r'\.(\d+)\.html', href)
                             if match:
                                 ad_id = match.group(1)
-
                         if not ad_id:
                             continue
 
                         url = f"{BASE_URL}{href}" if href.startswith("/") else href
 
-                        title_el = item.select_one("h3.truncate_title") or item.select_one("h3")
-                        title = title_el.get_text(strip=True) if title_el else link_el.get_text(strip=True)
+                        title_el = item.select_one("h2.truncate_title span")
+                        title = (
+                            title_el.get_text(strip=True) if title_el
+                            else (item.get("aria-label", "").strip() or "Wohnung Berlin")
+                        )
 
-                        price_el = item.select_one("div.col-xs-3 b") or item.select_one("b.middle")
+                        price_el = item.select_one(".price-row .card-main-text")
                         price = price_el.get_text(strip=True) if price_el else "N/A"
                         if price and "€" not in price and price != "N/A":
                             price = f"{price} €"
 
-                        size_el = item.select_one("div.col-xs-3:nth-child(2) b")
+                        size_el = item.select_one(".size-value")
                         size = size_el.get_text(strip=True) if size_el else ""
 
-                        location_el = item.select_one("div.col-xs-11 span")
+                        details_el = item.select_one(".card-details-text")
                         location = "Berlin"
-                        if location_el:
-                            # Tekst je oblika "4-Zimmer-Wohnung | Berlin Friedrichshain | Straße 5"
-                            # (naslov ponude + adresa, razdvojeni doslovnim "|"). Broj soba je već
-                            # uhvaćen preko parse_rooms() iz celog teksta kartice, pa se ovde
-                            # zadržava samo deo posle prvog "|" (stvarna adresa).
-                            parts = [re.sub(r"\s+", " ", p).strip() for p in location_el.get_text(strip=True).split("|")]
+                        if details_el:
+                            # Tekst je oblika "2-Zimmer-Wohnung · Berlin Friedrichshain · Straße 5"
+                            # (naslov ponude + adresa). "title" atribut ima čist tekst bez whitespace-a
+                            # iz ugnježdenih elemenata; delimo na "|" ili "·" jer je sajt menjao
+                            # separator, pa ne želimo da se ponovo pokvari ako se opet promeni.
+                            full_text = details_el.get("title") or details_el.get_text(" ", strip=True)
+                            parts = [re.sub(r"\s+", " ", p).strip() for p in re.split(r"[|·•]", full_text)]
                             parts = [p for p in parts if p]
                             location = ", ".join(parts[1:]) if len(parts) > 1 else (parts[0] if parts else "Berlin")
-
-                        available_el = item.select_one("div.col-xs-5 span")
-                        available = available_el.get_text(strip=True) if available_el else ""
 
                         card_text = item.get_text(" ", strip=True)
                         fields = listing_fields(price, card_text, title)
@@ -138,7 +132,7 @@ class WGGScraper(BaseScraper):
                             "url": url,
                             "price": f"{price} · {size}" if size else price,
                             "location": location,
-                            "description": f"Dostupno od: {available}" if available else "",
+                            "description": "",
                             **fields,
                         })
 

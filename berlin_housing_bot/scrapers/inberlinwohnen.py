@@ -24,8 +24,8 @@ BASE_URL = "https://www.inberlinwohnen.de"
 class InBerlinWohnenScraper(BaseScraper):
     source = "InBerlinWohnen"
 
-    def __init__(self, db_path, interval_minutes, search_url, email, password):
-        super().__init__(db_path, interval_minutes)
+    def __init__(self, db_path, interval_minutes, search_url, email, password, browser_lock=None):
+        super().__init__(db_path, interval_minutes, browser_lock=browser_lock)
         self.search_url = search_url
         self.email = email
         self.password = password
@@ -33,7 +33,9 @@ class InBerlinWohnenScraper(BaseScraper):
     async def fetch_ads(self) -> list[dict]:
         ads = []
 
-        async with async_playwright() as p:
+        # Deljen lock sa WG-Gesucht — na ovoj VM dve Chromium instance
+        # istovremeno pregažuju CPU/RAM i navigacija puca sa timeout-om.
+        async with self.browser_lock, async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox",
@@ -55,10 +57,14 @@ class InBerlinWohnenScraper(BaseScraper):
             page = await context.new_page()
 
             try:
-                # 1. Login
-                log.info("[InBerlinWohnen] Logovanje...")
-                await page.goto(f"{BASE_URL}/login", wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(random.uniform(1.0, 2.0))
+                # Login se vise ne koristi (anonimni pristup je dovoljan), i dupli
+                # page.goto (login stranica pa search stranica) je pravio
+                # net::ERR_ABORTED na drugoj navigaciji — verovatno je reload nakon
+                # prihvatanja cookie-ja na /login stranici konfliktovao sa narednim
+                # goto pozivom. Idemo direktno na search stranicu i prihvatamo
+                # cookie-je samo tu, u jednoj navigaciji.
+                await page.goto(self.search_url, wait_until="domcontentloaded", timeout=30000)
+                await asyncio.sleep(random.uniform(1.5, 3.0))
 
                 # Zatvori privacy modal
                 try:
@@ -69,21 +75,7 @@ class InBerlinWohnenScraper(BaseScraper):
                 except Exception:
                     pass
 
-                # # Popuni login formu
-                # await page.fill("input[name='email'], input[type='email']", self.email)
-                # await page.fill("input[name='password'], input[type='password']", self.password)
-                # await page.click("button[type='submit']")
-                # await asyncio.sleep(random.uniform(2.0, 3.0))
-                #
-                # if "/login" in page.url:
-                #     log.error("[InBerlinWohnen] Login neuspešan")
-                #     return []
-                #
-                # log.info("[InBerlinWohnen] Login uspešan, ucitavam oglase...")
-
-                # 2. Idi na search stranicu
-                await page.goto(self.search_url, wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(random.uniform(3.0, 5.0))
+                await asyncio.sleep(random.uniform(2.0, 3.0))
 
                 # Sačekaj da se Livewire ucita
                 try:

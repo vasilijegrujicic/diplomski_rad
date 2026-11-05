@@ -21,11 +21,22 @@ MAX_KIEZ = 100
 class BaseScraper:
     source: str = "Unknown"
 
-    def __init__(self, db_path: str, interval_minutes: int, backend: BackendClient | None = None):
+    def __init__(
+        self,
+        db_path: str,
+        interval_minutes: int,
+        backend: BackendClient | None = None,
+        browser_lock: asyncio.Lock | None = None,
+    ):
         self.db_path = db_path
         self.interval = interval_minutes * 60
         self.backend = backend or BackendClient.from_config()
         self.send_delay = (1.0, 2.0)
+        # Deljen između scrapera koji pokreću Chromium (WGG, InBerlinWohnen), da
+        # dve instance browsera nikad ne rade istovremeno na maloj VM — ako nije
+        # prosleđen (npr. Kleinanzeigen koji ne koristi Playwright), svaki ima
+        # svoj privatni lock koji ništa ne ograničava.
+        self.browser_lock = browser_lock or asyncio.Lock()
         init_db(db_path, self.source)
 
     async def fetch_ads(self) -> list[dict]:
