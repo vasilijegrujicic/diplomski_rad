@@ -9,28 +9,31 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "clsx": "latest",
+    "clsx": "^2.1.1",
     "d3-geo": "^3.1.1",
     "leaflet": "^1.9.4",
-    "lucide-react": "latest",
-    "motion": "latest",
-    "next": "latest",
+    "lucide-react": "^1.39.0",
+    "motion": "^13.2.0",
+    "next": "^16.4.6",
     "prop-types": "^15.8.1",
-    "react": "latest",
-    "react-dom": "latest",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-leaflet": "^5.0.0",
     "react-simple-maps": "^3.0.0",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "latest",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/leaflet": "^1.9.22",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "autoprefixer": "latest",
-    "postcss": "latest",
-    "tailwindcss": "latest",
-    "typescript": "latest"
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "d3-color": "^3.1.0"
   }
 }

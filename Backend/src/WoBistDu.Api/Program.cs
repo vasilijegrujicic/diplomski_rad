@@ -1,11 +1,11 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WoBistDu.Domain.Interfaces;
 using WoBistDu.Api.Bot;
+using WoBistDu.Api.Security;
 using WoBistDu.Api.Services;
 using WoBistDu.Domain.Interfaces;
 using WoBistDu.Infrastructure.Authentication;
@@ -41,6 +41,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+builder.Services.AddAuthRateLimiting();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -80,12 +81,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+app.UseForwardedHeaders(RateLimiting.ForwardedHeadersBehindProxy());
 app.UseMiddleware<InternalApiKeyMiddleware>();
 app.UseCors("FrontendPolicy");
+app.UseRateLimiter();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

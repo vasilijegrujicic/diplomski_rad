@@ -1,13 +1,16 @@
 using System;
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WoBistDu.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using WoBistDu.Domain.DTOs.Admin;
 using WoBistDu.Domain.Interfaces;
 
 namespace WoBistDu.Api.Controllers
 {
+    // Responses are AdminUserResponse, never the User entity: the entity carries PasswordHash.
     [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/admin")]
@@ -24,7 +27,7 @@ namespace WoBistDu.Api.Controllers
         public async Task<IActionResult> GetUsers()
         {
             var users = await _userRepository.GetAllAsync();
-            return Ok(users);
+            return Ok(users.Select(AdminUserResponse.From).ToList());
         }
 
         [HttpGet("users/{id}")]
@@ -32,21 +35,35 @@ namespace WoBistDu.Api.Controllers
         {
             var user = await _userRepository.GetByIdAsync(id);
             if (user == null) return NotFound();
-            return Ok(user);
+            return Ok(AdminUserResponse.From(user));
         }
 
         [HttpPut("users/{id}")]
-        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User userUpdate)
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] AdminUserUpdateRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Email) || request.Email.Length > 255 ||
+                !new EmailAddressAttribute().IsValid(request.Email))
+            {
+                return BadRequest("A valid email address is required.");
+            }
+
             var user = await _userRepository.GetByIdAsync(id);
             if (user == null) return NotFound();
 
-            user.Email = userUpdate.Email;
-            user.TelegramChatId = userUpdate.TelegramChatId;
-            // In a real app, we would handle password updates separately
+            user.Email = request.Email;
+            user.TelegramChatId = string.IsNullOrWhiteSpace(request.TelegramChatId) ? null : request.TelegramChatId;
 
-            await _userRepository.UpdateAsync(user);
-            return Ok(user);
+            try
+            {
+                await _userRepository.UpdateAsync(user);
+            }
+            catch (DbUpdateException)
+            {
+                // Email and TelegramChatId are unique; another user already has one of them.
+                return Conflict("Another user already has this email or Telegram chat.");
+            }
+
+            return Ok(AdminUserResponse.From(user));
         }
 
         [HttpDelete("users/{id}")]
