@@ -23,6 +23,7 @@ BASE_URL = "https://www.inberlinwohnen.de"
 
 class InBerlinWohnenScraper(BaseScraper):
     source = "InBerlinWohnen"
+    uses_browser = True
 
     def __init__(self, db_path, interval_minutes, search_url, email, password, browser_lock=None):
         super().__init__(db_path, interval_minutes, browser_lock=browser_lock)
@@ -33,9 +34,7 @@ class InBerlinWohnenScraper(BaseScraper):
     async def fetch_ads(self) -> list[dict]:
         ads = []
 
-        # Deljen lock sa WG-Gesucht — na ovoj VM dve Chromium instance
-        # istovremeno pregažuju CPU/RAM i navigacija puca sa timeout-om.
-        async with self.browser_lock, async_playwright() as p:
+        async with async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox",

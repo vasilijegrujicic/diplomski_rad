@@ -228,3 +228,39 @@ def test_from_config_builds_the_ingest_url(monkeypatch):
 
     assert client.ingest_url == "http://host:5000/api/internal/listings/ingest"
     assert client.verify_tls is False
+
+
+class HangingScraper(FakeScraper):
+    async def fetch_ads(self):
+        await asyncio.Event().wait()
+
+
+def test_hung_fetch_is_abandoned_and_frees_the_browser_lock(db_path):
+    backend, requests = recording_backend()
+    scraper = HangingScraper(db_path, backend, [])
+    scraper.fetch_timeout = 0.05
+
+    async def cycle():
+        await scraper.check_once()
+        return scraper.browser_lock.locked()
+
+    assert asyncio.run(cycle()) is False
+    assert requests == []
+    assert count_ads(SOURCE, db_path) == 0
+
+
+def test_scraper_sharing_the_lock_runs_after_a_hung_one(db_path, tmp_path):
+    backend, _ = recording_backend()
+    hung = HangingScraper(db_path, backend, [])
+    hung.fetch_timeout = 0.05
+    healthy = FakeScraper(str(tmp_path / "other.db"), backend, [make_ad(1)])
+
+    async def both():
+        lock = asyncio.Lock()
+        hung.browser_lock = lock
+        healthy.browser_lock = lock
+        await asyncio.wait_for(asyncio.gather(hung.check_once(), healthy.check_once()), timeout=2)
+
+    asyncio.run(both())
+
+    assert count_ads(SOURCE, str(tmp_path / "other.db")) == 1

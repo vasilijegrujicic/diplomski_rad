@@ -17,9 +17,26 @@ log = logging.getLogger(__name__)
 MAX_TITLE = 500  # ograničenja kolona u backendu
 MAX_KIEZ = 100
 
+# Normalan ciklus WGG/InBerlinWohnen traje ~70s; preko 3 minuta je sigurno zaglavljen.
+FETCH_TIMEOUT_SECONDS = 180
+
+
+async def _kill_browsers():
+    """Ubija sve Chromium procese u kontejneru (Playwright-ov chrome/headless_shell)."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "pkill", "-9", "-f", "chrom",
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+        )
+        await proc.wait()
+    except OSError as e:
+        log.warning("Ne mogu da ugasim zaglavljeni browser: %s", e)
+
 
 class BaseScraper:
     source: str = "Unknown"
+    uses_browser: bool = False
+    fetch_timeout: float = FETCH_TIMEOUT_SECONDS
 
     def __init__(
         self,
@@ -42,6 +59,28 @@ class BaseScraper:
     async def fetch_ads(self) -> list[dict]:
         """Override u svakom scrapers-u."""
         raise NotImplementedError
+
+    async def _fetch_with_timeout(self) -> list[dict] | None:
+        """
+        fetch_ads() pod browser lock-om, sa rokom. Lock drži ovaj poziv, ne sam scraper:
+        zaglavljen fetch_ads() je jednom zauvek blokirao drugi Chromium scraper, a
+        čišćenje zaglavljenog browsera i samo ume da visi — zato se zadatak napušta
+        umesto da se čeka na njegov kraj. Vraća None ako je rok istekao.
+        """
+        async with self.browser_lock:
+            task = asyncio.ensure_future(self.fetch_ads())
+            done, _ = await asyncio.wait({task}, timeout=self.fetch_timeout)
+            if task in done:
+                return task.result()
+
+            task.cancel()
+            task.add_done_callback(lambda t: t.cancelled() or t.exception())
+            if self.uses_browser:
+                # Lock je i dalje kod nas, pa je ovo jedini živi Chromium u kontejneru.
+                await _kill_browsers()
+            log.error("[%s] Preuzimanje oglasa trajalo duže od %ds — prekinuto",
+                      self.source, int(self.fetch_timeout))
+            return None
 
     def normalize_ad(self, ad: dict) -> dict:
         """
@@ -94,9 +133,11 @@ class BaseScraper:
         log.info("[%s] Proveravam nove oglase...", self.source)
 
         try:
-            ads = await self.fetch_ads()
+            ads = await self._fetch_with_timeout()
         except Exception as e:
             log.error("[%s] Greška u fetch_ads: %s", self.source, e)
+            return
+        if ads is None:
             return
 
         # Prvo pokretanje: postojeći oglasi se samo zabeleže, korisnici ne dobijaju stare stanove.
