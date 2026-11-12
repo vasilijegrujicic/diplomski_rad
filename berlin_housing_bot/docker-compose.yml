@@ -1,0 +1,12 @@
+services:
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # tini kao PID 1 čisti zombi procese koje Chromium ostavlja (bez ovoga se nagomilaju do limita)
+    init: true
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
